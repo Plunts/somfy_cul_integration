@@ -42,6 +42,7 @@ from .const import (
     CONF_ADDRESS,
     CONF_DEVICE_CLASS,
     CONF_NAME,
+    CONF_MY_POSITION,
     CONF_REVERSED,
     CONF_TYPE,
     DOMAIN,
@@ -51,6 +52,7 @@ from .const import (
     SERVICE_PROG,
     SERVICE_RELOAD,
     SERVICE_STOP,
+    SERVICE_MY,
     SUBENTRY_TYPE_COVER,
 )
 from .cul import Cul
@@ -139,6 +141,7 @@ PLATFORM_SCHEMA = COVER_PLATFORM_SCHEMA.extend(
         vol.Required(CONF_ADDRESS): cv.string,
         vol.Optional(CONF_TYPE): cv.string,
         vol.Optional(CONF_DEVICE_CLASS): cv.string,
+        vol.Optional(CONF_MY_POSITION): vol.All(vol.Coerce(int), vol.Range(min=1, max=99)),
         vol.Optional(CONF_REVERSED, default=False): cv.boolean,
         vol.Optional(ATTR_UP_TIME): vol.Coerce(int),
         vol.Optional(ATTR_DOWN_TIME): vol.Coerce(int),
@@ -169,7 +172,7 @@ def async_get_yaml_covers(config: ConfigType) -> list[dict[str, Any]]:
             ),
             CONF_REVERSED: conf[CONF_REVERSED],
         }
-        for key in (ATTR_UP_TIME, ATTR_DOWN_TIME):
+        for key in (ATTR_UP_TIME, ATTR_DOWN_TIME, CONF_MY_POSITION):
             if conf.get(key) is not None:
                 cover[key] = conf[key]
         covers.append(cover)
@@ -220,6 +223,7 @@ async def async_setup_entry(
     platform.async_register_entity_service(SERVICE_OPEN, {}, "async_open_cover")
     platform.async_register_entity_service(SERVICE_CLOSE, {}, "async_close_cover")
     platform.async_register_entity_service(SERVICE_STOP, {}, "async_stop_cover")
+    platform.async_register_entity_service(SERVICE_MY, {}, "async_move_to_my")
     platform.async_register_entity_service(SERVICE_RELOAD, {}, "async_reload_state")
 
 
@@ -271,6 +275,7 @@ class SomfyCulShade(RestoreEntity, CoverEntity):
         self._reverse = bool(data.get(CONF_REVERSED, False))
         self._up_time = data.get(ATTR_UP_TIME)
         self._down_time = data.get(ATTR_DOWN_TIME)
+        self._my_position = data.get(CONF_MY_POSITION)
 
         self._cancel_drv_timer = None
         self._cancel_stop_timer = None
@@ -317,6 +322,17 @@ class SomfyCulShade(RestoreEntity, CoverEntity):
         """Stop the cover."""
         await self.async_send_command(Command.STOP)
 
+    async def async_move_to_my(self) -> None:
+        """Move to the motor's stored MY preset"""
+        if self._my_position is None:
+            _LOGGER.error("MY-Position not configured for %s", self._name)
+
+        # STOP and MY use the same RTS frame. Stop first and then send MY.
+        if self._attr_is_opening or self._attr_is_closing:
+            await self.async_stop_cover()
+
+        await self.async_send_command(Command.MY, self._my_position)
+
     async def async_set_cover_position(self, **kwargs: Any) -> None:
         """Move the cover to a specific position."""
         if (position := kwargs.get(ATTR_POSITION)) is None:
@@ -335,6 +351,9 @@ class SomfyCulShade(RestoreEntity, CoverEntity):
         if position <= 0:
             _LOGGER.debug("Position %s -> plain CLOSE for %s", position, self._name)
             await self.async_close_cover()
+            return
+        if self._my_position is not None and position == self._my_position:
+            await self.async_move_to_my()
             return
 
         await self.async_send_command(Command.POS, position)
@@ -641,6 +660,22 @@ class SomfyCulShade(RestoreEntity, CoverEntity):
 
             _LOGGER.debug("POS timer with timeout: %s", time_to_stop)
 
+        elif cmd == Command.MY:
+            direction, duration = self._calculate_position_command(target_position)
+            if cmd is None or duration is None:
+                _LOGGER.debug("Position cannot be set")
+                return None, None
+
+            self._attr_is_opening = direction == Command.OPEN
+            self._attr_is_closing = direction == Command.CLOSE
+            self.async_write_ha_state()
+
+            async def _handle_timer(_now):
+                self._write_state_pos(target_position)
+            self._cancel_drv_timer = async_call_later(self.hass, duration, _handle_timer)
+
+            _LOGGER.debug("MY timer with timeout: %s", duration)
+
         elif cmd == Command.OPEN:
             self._attr_is_opening = True
             self._attr_is_closing = False
@@ -695,14 +730,14 @@ class SomfyCulShade(RestoreEntity, CoverEntity):
             _move_time = self._up_time
         elif cmd == Command.CLOSE:
             _move_time = self._down_time
-        elif cmd == Command.POS:
+        elif cmd == Command.POS or cmd == Command.MY:
             _move_time = min(self._up_time or 0, self._down_time or 0)
 
         _LOGGER.debug("Move time: %s", _move_time)
 
         time_to_stop = None
 
-        if cmd in (Command.OPEN, Command.CLOSE, Command.POS):
+        if cmd in (Command.OPEN, Command.CLOSE, Command.POS, Command.MY):
             if _move_time and _move_time > 0:
                 cmd, time_to_stop = self._start_update_state_timer(cmd, target_position)
             else:

@@ -33,6 +33,7 @@ from .const import (
     CONF_DEBUG_RX,
     CONF_DEVICE_CLASS,
     CONF_NAME,
+    CONF_MY_POSITION,
     CONF_REVERSED,
     DEFAULT_BAUD_RATE,
     DEFAULT_CUL_PATH,
@@ -138,6 +139,11 @@ COVER_OPTIONS_SCHEMA = {
             min=1, max=600, step=1, unit_of_measurement="s", mode=selector.NumberSelectorMode.BOX
         )
     ),
+    vol.Optional(CONF_MY_POSITION): selector.NumberSelector(
+        selector.NumberSelectorConfig(
+            min=1, max=99, step=1, unit_of_measurement="%", mode=selector.NumberSelectorMode.BOX
+        )
+    ),
     vol.Required(CONF_REVERSED, default=False): selector.BooleanSelector(),
 }
 
@@ -151,7 +157,7 @@ def _clean_cover_data(user_input: dict[str, Any]) -> dict[str, Any]:
     data = dict(user_input)
     data[CONF_ADDRESS] = normalize_address(data[CONF_ADDRESS])
     data[CONF_NAME] = str(data[CONF_NAME]).strip()
-    for key in (ATTR_UP_TIME, ATTR_DOWN_TIME):
+    for key in (ATTR_UP_TIME, ATTR_DOWN_TIME, CONF_MY_POSITION):
         if data.get(key) is None:
             data.pop(key, None)
         else:

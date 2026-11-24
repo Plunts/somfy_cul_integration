@@ -65,13 +65,15 @@
             "device_class": "Type",
             "up_time": "Up time",
             "down_time": "Down time",
-            "reversed": "Reverse direction"
+            "reversed": "Reverse direction",
+            "my_position": "MY position"
           },
           "data_description": {
             "address": "Hex address, e.g. ABCD",
             "up_time": "Seconds the cover needs to open completely",
             "down_time": "Seconds the cover needs to close completely",
-            "reversed": "Swap the open and close commands"
+            "reversed": "Swap the open and close commands",
+            "my_position": "Optional position (1-99%) stored as MY in the motor"
           }
         },
         "reconfigure": {
@@ -83,13 +85,15 @@
             "device_class": "Type",
             "up_time": "Up time",
             "down_time": "Down time",
-            "reversed": "Reverse direction"
+            "reversed": "Reverse direction",
+            "my_position": "MY position"
           },
           "data_description": {
             "address": "Hex address, e.g. ABCD",
             "up_time": "Seconds the cover needs to open completely",
             "down_time": "Seconds the cover needs to close completely",
-            "reversed": "Swap the open and close commands"
+            "reversed": "Swap the open and close commands",
+            "my_position": "Optional position (1-99%) stored as MY in the motor"
           }
         }
       },
@@ -150,6 +154,10 @@
     "stop_cover": {
       "name": "Stop cover",
       "description": "Stops the cover."
+    },
+    "move_to_my": {
+      "name": "Move to MY-Position",
+      "description": "Move the cover to the position stored inside the motor."
     },
     "reload_state": {
       "name": "Reload state",

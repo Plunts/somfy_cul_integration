@@ -65,13 +65,15 @@
             "device_class": "Typ",
             "up_time": "Öffnungszeit",
             "down_time": "Schließzeit",
-            "reversed": "Richtung umkehren"
+            "reversed": "Richtung umkehren",
+            "my_position": "MY-Position"
           },
           "data_description": {
             "address": "Hex-Adresse, z. B. ABCD",
             "up_time": "Sekunden, die der Rollladen zum vollständigen Öffnen braucht",
             "down_time": "Sekunden, die der Rollladen zum vollständigen Schließen braucht",
-            "reversed": "Befehle zum Öffnen und Schließen vertauschen"
+            "reversed": "Befehle zum Öffnen und Schließen vertauschen",
+            "my_position": "Optionale Position (1-99 %), die im Motor als individueller Steuerpunkt gespeichert ist"
           }
         },
         "reconfigure": {
@@ -83,13 +85,15 @@
             "device_class": "Typ",
             "up_time": "Öffnungszeit",
             "down_time": "Schließzeit",
-            "reversed": "Richtung umkehren"
+            "reversed": "Richtung umkehren",
+            "my_position": "MY-Position"
           },
           "data_description": {
             "address": "Hex-Adresse, z. B. ABCD",
             "up_time": "Sekunden, die der Rollladen zum vollständigen Öffnen braucht",
             "down_time": "Sekunden, die der Rollladen zum vollständigen Schließen braucht",
-            "reversed": "Befehle zum Öffnen und Schließen vertauschen"
+            "reversed": "Befehle zum Öffnen und Schließen vertauschen",
+            "my_position": "Optionale Position (1-99 %), die im Motor als individueller Steuerpunkt gespeichert ist"
           }
         }
       },
@@ -150,6 +154,10 @@
     "stop_cover": {
       "name": "Rollladen stoppen",
       "description": "Stoppt den Rollladen."
+    },
+    "move_to_my": {
+      "name": "Zur gespeicherten Position",
+      "description": "Sendet den MY-Befehl um den Rollladen zum individueller Steuerpunkt zu bewegen."
     },
     "reload_state": {
       "name": "Status neu laden",
